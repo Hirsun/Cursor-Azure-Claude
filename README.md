@@ -101,8 +101,6 @@ npm run dev
 
 3. **Cấu hình Build Settings**
    - Railway sẽ tự động detect Node.js project
-   - Đảm bảo **Start Command** là: `npm start`
-   - **Build Command** có thể để trống hoặc: `npm install`
 
 4. **Deploy**
    - Railway sẽ tự động deploy khi bạn push code lên GitHub
