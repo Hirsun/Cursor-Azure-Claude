@@ -1,47 +1,105 @@
 # Azure Anthropic Proxy for Cursor
 
-Proxy server để kết nối Cursor IDE với Azure Anthropic API (Claude).
+代理服务器，用于将 Cursor IDE 连接到 Azure Anthropic API (Claude)。
 
-## 🌐 Production URLs
+## 📋 接口列表
 
--   **Base URL**: https://cursor-azure-claude-proxy-production.up.railway.app/
--   **Health Check**: https://cursor-azure-claude-proxy-production.up.railway.app/health
+### 根路径
 
-## 📋 Endpoints
+-   `GET /` - 服务器信息及可用接口
 
-### Root Endpoint
+### 健康检查
 
--   `GET /` - Thông tin về server và các endpoints có sẵn
+-   `GET /health` - 检查服务器运行状态
 
-### Health Check
+### 聊天接口
 
--   `GET /health` - Kiểm tra trạng thái server
+-   `POST /chat/completions` - Cursor IDE 主要使用的接口（OpenAI 格式）
+-   `POST /v1/chat/completions` - OpenAI 格式
+-   `POST /v1/messages` - Anthropic 原生格式
 
-### Chat Endpoints
+## ⚙️ 环境变量
 
--   `POST /chat/completions` - Endpoint chính cho Cursor IDE (OpenAI format)
--   `POST /v1/chat/completions` - OpenAI format
--   `POST /v1/messages` - Anthropic native format
+| 变量 | 必填 | 默认值 | 说明 |
+|------|------|--------|------|
+| `AZURE_ENDPOINT` | 是 | - | Azure Anthropic API 端点 |
+| `AZURE_API_KEY` | 是 | - | Azure API 密钥 |
+| `SERVICE_API_KEY` | 是 | - | 用于验证 Cursor IDE 请求的密钥 |
+| `AZURE_DEPLOYMENT_NAME` | 否 | `claude-opus-4-5` | Azure 部署名称 |
+| `PORT` | 否 | `8080` | 服务端口 |
 
-## 🚀 Cách sử dụng
+## 🐳 Docker 部署（推荐）
 
-### Cấu hình trong Cursor IDE
-
-1. Mở Cursor Settings
-2. Tìm phần "Model" hoặc "Model Settings" Mở "Opus 4.5"
-3. API Keys mucj OpenAI Custom API URL: `https://cursor-azure-claude-proxy-production.up.railway.app`
-4. Đặt API Key: Giá trị phải **trùng khớp chính xác** với biến môi trường `SERVICE_API_KEY` trong file `.env` của server. Bật OpenAI API key
-
-![Cấu hình Model trong Cursor IDE](screenshot/cursor-model.png)
-
-![Cấu hình Chat trong Cursor IDE](screenshot/cursor-chat.png)
-
-**Lưu ý quan trọng**: API Key trong Cursor IDE (`Cursor Settings > Models > API Keys > OpenAI API Key`) phải khớp chính xác với giá trị `SERVICE_API_KEY` trong file `.env` của server. Nếu không khớp, request sẽ bị từ chối với lỗi authentication.
-
-### Ví dụ Request
+### 1. 准备环境变量
 
 ```bash
-curl -X POST https://cursor-azure-claude-proxy-production.up.railway.app/chat/completions \
+cp .env.example .env
+```
+
+编辑 `.env` 文件，填入实际的配置值：
+
+```env
+AZURE_ENDPOINT=https://<resource>.openai.azure.com/anthropic/v1/messages
+AZURE_API_KEY=your-azure-api-key
+SERVICE_API_KEY=your-random-secret-key
+AZURE_DEPLOYMENT_NAME=claude-opus-4-5
+PORT=8080
+```
+
+### 2. 启动服务
+
+```bash
+docker compose up -d --build
+```
+
+### 3. 常用命令
+
+```bash
+# 查看日志
+docker compose logs -f
+
+# 停止服务
+docker compose down
+
+# 重新构建并启动
+docker compose up -d --build
+```
+
+## 📦 本地运行
+
+```bash
+npm install
+npm start
+```
+
+## 🚂 Railway 部署
+
+1. 在 [Railway](https://railway.app) 上创建新项目，关联 GitHub 仓库
+2. 在 **Variables** 标签中配置上述环境变量
+3. Railway 会自动检测 Node.js 项目并完成部署
+4. 部署成功后访问 `https://your-app.up.railway.app/health` 验证
+
+![Railway 环境变量配置](screenshot/railway-var.png)
+
+![Railway 自定义域名配置](screenshot/railway-domain.png)
+
+## 🔧 Cursor IDE 配置
+
+1. 打开 Cursor Settings
+2. 找到 Model 设置，启用 "Opus 4.5"
+3. 设置 OpenAI Custom API URL 为你的服务地址（如 `http://localhost:8080` 或 Railway URL）
+4. 设置 OpenAI API Key 为 `SERVICE_API_KEY` 的值，并启用
+
+![Cursor Model 配置](screenshot/cursor-model.png)
+
+![Cursor Chat 配置](screenshot/cursor-chat.png)
+
+> **注意**：Cursor IDE 中的 API Key 必须与服务端 `SERVICE_API_KEY` 环境变量完全一致，否则请求会被拒绝。
+
+### 测试请求
+
+```bash
+curl -X POST http://localhost:8080/chat/completions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_SERVICE_API_KEY" \
   -d '{
@@ -52,81 +110,10 @@ curl -X POST https://cursor-azure-claude-proxy-production.up.railway.app/chat/co
   }'
 ```
 
-**Lưu ý**: Thay `YOUR_SERVICE_API_KEY` bằng giá trị thực từ biến môi trường `SERVICE_API_KEY`.
-
-## ⚙️ Environment Variables
-
-Server yêu cầu các biến môi trường sau:
-
--   `AZURE_ENDPOINT` - Azure Anthropic API endpoint
--   `AZURE_API_KEY` - Azure API key
--   `SERVICE_API_KEY` - Service API key dùng để xác thực request từ Cursor IDE (phải khớp với API Key trong Cursor Settings)
--   `PORT` - Port để chạy server (mặc định: 3000)
--   `AZURE_DEPLOYMENT_NAME` - Tên deployment trên Azure (mặc định: "claude-opus-4-5")
-
-## 📦 Installation
-
-```bash
-npm install
-npm start
-```
-
-## 🔧 Development
-
-```bash
-npm run dev
-```
-
-## 🚂 Deploy trên Railway
-
-### Cấu hình nhanh
-
-1. **Tạo project mới trên Railway**
-   - Truy cập [Railway](https://railway.app)
-   - Tạo project mới từ GitHub repository hoặc Deploy từ GitHub
-
-2. **Cấu hình Environment Variables**
-   - Vào tab **Variables** trong Railway project
-   - Thêm các biến môi trường sau:
-     ```
-     AZURE_ENDPOINT=https://<resource>.openai.azure.com/anthropic/v1/messages
-     AZURE_API_KEY=your-azure-api-key
-     SERVICE_API_KEY=your-random-secret-key
-     PORT=3000
-     AZURE_DEPLOYMENT_NAME=claude-opus-4-5
-     ```
-   - **Lưu ý**: `SERVICE_API_KEY` để bảo vệ dịch vụ của bạn. Hãy đặt nó thành một chuỗi ký tự ngẫu nhiên.
-
-   ![Cấu hình Environment Variables trên Railway](screenshot/railway-var.png)
-
-3. **Cấu hình Build Settings**
-   - Railway sẽ tự động detect Node.js project
-
-4. **Deploy**
-   - Railway sẽ tự động deploy khi bạn push code lên GitHub
-   - Hoặc click **Deploy** trong Railway dashboard
-   - Sau khi deploy thành công, Railway sẽ cung cấp một public URL
-
-5. **Kiểm tra Health Check**
-   - Truy cập: `https://your-app.up.railway.app/health`
-   - Nếu trả về `{"status":"ok"}`, server đã chạy thành công
-
-6. **Cấu hình Custom Domain (tùy chọn)**
-   - Vào tab **Settings** > **Networking**
-   - Thêm custom domain nếu cần
-
-   ![Cấu hình Custom Domain trên Railway](screenshot/railway-domain.png)
-
-### Lưu ý khi deploy
-
-- Railway tự động cung cấp `PORT` qua biến môi trường, nhưng bạn vẫn có thể set `PORT=8080` để đảm bảo
-- `SERVICE_API_KEY` phải khớp chính xác với API Key bạn cấu hình trong Cursor IDE
-- Kiểm tra logs trong Railway dashboard nếu gặp lỗi
-
 ## 📝 License
 
 MIT
 
-## 🙏 Tham khảo
+## 🙏 参考
 
-Dự án này được tham khảo từ [Cursor-Azure-GPT-5](https://github.com/gabrii/Cursor-Azure-GPT-5) - một service cho phép Cursor sử dụng Azure GPT-5 deployments.
+本项目参考了 [Cursor-Azure-GPT-5](https://github.com/gabrii/Cursor-Azure-GPT-5)。
