@@ -1,0 +1,12 @@
+services:
+  azure-claude-proxy:
+    build: .
+    ports:
+      - "${PORT:-8080}:8080"
+    environment:
+      - AZURE_ENDPOINT=${AZURE_ENDPOINT}
+      - AZURE_API_KEY=${AZURE_API_KEY}
+      - SERVICE_API_KEY=${SERVICE_API_KEY}
+      - AZURE_DEPLOYMENT_NAME=${AZURE_DEPLOYMENT_NAME:-claude-opus-4-5}
+      - PORT=8080
+    restart: unless-stopped
